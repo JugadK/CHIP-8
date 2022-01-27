@@ -1,45 +1,48 @@
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_events.h>
-#include <SDL2/SDL_render.h>
 #include <stdbool.h>
-#include <stdio.h>
 
 int main() {
+
+  int memory[4096];
+  int display[64][32];
+  int registers[12];
+
   SDL_Renderer *renderer = NULL;
-
-  bool quit = false;
   SDL_Event event;
-
   SDL_Init(SDL_INIT_VIDEO);
-
   SDL_Window *win = SDL_CreateWindow("Hello world", SDL_WINDOWPOS_CENTERED,
-                                     SDL_WINDOWPOS_CENTERED, 640, 480, 0);
-
-  SDL_RenderPresent(renderer);
-  SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-  SDL_RenderDrawLine(renderer, 0, 0, 42, 42);
- 
-  SDL_RenderDrawPoint(renderer, 2, 2);
+                                     SDL_WINDOWPOS_CENTERED, 512, 256, 0);
 
   renderer = SDL_CreateRenderer(win, -1, 0);
+  bool quit = false;
 
   while (!quit) {
+
     SDL_WaitEvent(&event);
 
-    // Render something
-    SDL_RenderSetLogicalSize(renderer, 640, 480);
+    SDL_RenderSetScale(renderer, 8, 8);
 
-     SDL_RenderSetScale(renderer, 8.0f, 8.0f);
+    for (int i = 0; i < 64; i++) {
+      for (int j = 0; j < 32; j++) {
 
-    // Set colour of renderer
-    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+        if (display[i][j] == 0) {
 
-    // Clear the screen to the set colour
-    SDL_RenderClear(renderer);
+          SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 
-    // Show all the has been done behind the scenes
+          SDL_RenderDrawPoint(renderer, i, j);
+
+        } else {
+
+          SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+
+          SDL_RenderDrawPoint(renderer, i, j);
+        }
+      }
+    }
+
     SDL_RenderPresent(renderer);
 
+    // Checks if close button is pressed and exits the program
     switch (event.type) {
     case SDL_QUIT:
       quit = true;
@@ -48,8 +51,6 @@ int main() {
   }
 
   SDL_Quit();
-
-  return 0;
 
   return 0;
 }

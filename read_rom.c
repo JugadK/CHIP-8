@@ -1,9 +1,11 @@
+#include <SDL2/SDL_gamecontroller.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 int main()
 {
    char ch, file_name[25];
+   char buffer[10];
    FILE *fp;
 
 
@@ -15,11 +17,15 @@ int main()
       exit(EXIT_FAILURE);
    }
 
-   printf("The contents of %s file are:\n", file_name);
+   fread(buffer, sizeof(buffer), 4, fp);
 
-   while((ch = fgetc(fp)) != EOF)
-      printf("%c", ch);
 
+   for(int i = 0; i < sizeof(buffer); i++) { 
+
+      printf("%x\n", buffer[i]);
+
+
+   }
    fclose(fp);
    return 0;
 }

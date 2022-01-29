@@ -1,9 +1,10 @@
 #include <SDL2/SDL.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 int main() {
 
-  int memory[4096];
+  unsigned char memory[4096];
   int display[64][32];
   int registers[12];
 
@@ -16,16 +17,42 @@ int main() {
   renderer = SDL_CreateRenderer(win, -1, 0);
   bool quit = false;
 
+  // Use unsigned chars to stop hex overflow when reading binary numbers
+  FILE *fp;
+
+  fp = fopen("hex_test.bin", "rb"); // read mode
+
+  if (fp == NULL) {
+    perror("Error while opening the file.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  // Rom is loaded into memory starting from 0x200, or 512
+  // The original CHIP-8 had its intrpretor in the first 512 bytes
+  // So to emulate it we leave it empty and start at 0x200
+  fread(&memory[512], sizeof(memory), 1, fp);
+
+  int current_address = 512;
+
+
   while (!quit) {
 
     SDL_WaitEvent(&event);
 
     SDL_RenderSetScale(renderer, 8, 8);
 
+    if(current_address > 520) {
+      quit = true;
+      break;
+    }
+
+    printf("%x%x", memory[current_address], memory[current_address+1]);
+
+
     for (int i = 0; i < 64; i++) {
       for (int j = 0; j < 32; j++) {
 
-        if (display[i][j] == 0) {
+        if (j % 2 == 0) {
 
           SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 
@@ -48,8 +75,11 @@ int main() {
       quit = true;
       break;
     }
+
+    current_address++;
   }
 
+  fclose(fp);
   SDL_Quit();
 
   return 0;

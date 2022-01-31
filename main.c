@@ -1,17 +1,19 @@
 #include "main.h"
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_stdinc.h>
 #include <stdbool.h>
 #include <stdio.h>
 
-unsigned char memory[4096];
-int display[64][32];
+// Use unsigned chars to stop hex overflow when reading binary numbers
+unsigned char memory[4096] = {0};
+int display[64][32] = {0};
 unsigned char registers[16];
 unsigned char sound_register;
 bool play_sound;
 unsigned char delay_register;
 bool delay_not_zero;
-int program_counter;
-int stack[16];
+unsigned int program_counter = 0x200;
+unsigned int stack[16];
 int stack_pointer;
 
 // Every Opcode is a two byte value, a hex value is represented by 4 binary
@@ -46,7 +48,6 @@ int main(int argc, char **argv) {
   renderer = SDL_CreateRenderer(win, -1, 0);
   bool quit = false;
 
-  // Use unsigned chars to stop hex overflow when reading binary numbers
   FILE *fp;
 
   fp = fopen("hex_test.bin", "rb"); // read mode
@@ -59,48 +60,55 @@ int main(int argc, char **argv) {
   // Rom is loaded into memory starting from 0x200, or 512
   // The original CHIP-8 had its intrpretor in the first 512 bytes
   // So to emulate it we leave it empty and start at 0x200
-  fread(&memory[512], sizeof(memory), 1, fp);
+
+  fread(&memory[0x200], sizeof(memory), 1, fp);
 
   int current_address = 512;
-  bool read_rom = false;
 
   while (!quit) {
+
+    current_address = program_counter;
 
     SDL_WaitEvent(&event);
 
     SDL_RenderSetScale(renderer, 8, 8);
 
-    if (current_address > 514 && !read_rom) {
+    printf("%x", memory[current_address]);
+    first_opcode_byte = memory[current_address];
+    second_opcode_byte = memory[current_address+1];
 
-      read_rom = false;
+    current_opcode = (first_opcode_byte * 0x100) + second_opcode_byte;
 
-    } else {
+    // Decode opcode
 
-      first_opcode_byte = memory[current_address];
-      second_opcode_byte = memory[current_address + 1];
+    first_opcode_nibble = current_opcode / 0x1000;
+    second_opcode_nibble = (current_opcode / 0x100) % 0x10;
+    third_opcode_nibble = (current_opcode / 0x10) % 0x10;
+    fourth_opcode_nibble = current_opcode % 0x10;
 
-      current_opcode =
-          (memory[current_address] * 0x100) + memory[current_address + 1];
+    // To make reduce the amount of if statements, I decided to use a switch
+    // code for the first nibble, since with that we can correclty figure out
+    // the correct instruction for most of the instructions, after that we then
+    // branch into if statements if neccesary
 
-      // Decode opcode
-
-      first_opcode_nibble = current_opcode / 0x1000;
-      second_opcode_nibble = (current_opcode / 0x100) % 0x10;
-      third_opcode_nibble = (current_opcode / 0x10) % 0x10;
-      fourth_opcode_nibble = current_opcode % 0x10;
-
-      if (first_opcode_nibble == 0x6) {
-
-        registers[second_opcode_nibble] = second_opcode_byte;
+    switch (first_opcode_nibble) {
+    case 0x0:
+      if (current_opcode == 0x00e0) {
+        memset(display, 0, sizeof(display[0][0]) * 64 * 32);
       }
+    case 0x6:
+      registers[second_opcode_nibble] = second_opcode_byte;
 
-      print_debug_info();
-      quit = true;
-      break;
-
-      current_address = current_address + 2;
+    case 0xf:
+      // Useful for debugging purposes, not an actual instruction
+      if (current_opcode == 0xffff) {
+        print_debug_info();
+        break;
+      }
     }
 
+    print_debug_info();
+  break;
     for (int i = 0; i < 64; i++) {
       for (int j = 0; j < 32; j++) {
 
@@ -128,6 +136,8 @@ int main(int argc, char **argv) {
       quit = true;
       break;
     }
+
+    program_counter = program_counter + 0x2;
   }
 
   fclose(fp);
@@ -139,7 +149,6 @@ int main(int argc, char **argv) {
 void print_debug_info() {
 
   printf("\n");
-
   printf("current opcode %x\n", current_opcode);
   printf("opcode first byte %x\n", first_opcode_byte);
   printf("opcode second byte %x\n", second_opcode_byte);
@@ -147,8 +156,18 @@ void print_debug_info() {
   printf("opcode second nibble %x\n", second_opcode_nibble);
   printf("opcode third nibble %x\n", third_opcode_nibble);
   printf("opcode fourth nibble %x\n", fourth_opcode_nibble);
+
   for (int current_register = 0; current_register < 16; current_register++) {
 
     printf("register%x: %x\n", current_register, registers[current_register]);
+  }
+
+  for (int row = 0; row < 32; row++) {
+    for (int col = 0; col < 64; col++) {
+
+      printf("%i", display[row][col]);
+    }
+
+    printf("\n");
   }
 }

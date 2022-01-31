@@ -16,6 +16,10 @@ unsigned int program_counter = 0x200;
 unsigned int stack[16];
 int stack_pointer;
 
+// Some instruction set the program counter to a specific addr, overriding the
+// normal increment
+bool increment_program_counter = true;
+
 // Every Opcode is a two byte value, a hex value is represented by 4 binary
 // numbers or half a byte So that means that an opcode contains 4 hex numbers,
 // these can then be decoded to figure out what opcode is being called
@@ -63,19 +67,20 @@ int main(int argc, char **argv) {
 
   fread(&memory[0x200], sizeof(memory), 1, fp);
 
-  int current_address = 512;
-
   while (!quit) {
 
-    current_address = program_counter;
+    if (program_counter > 0x208) {
+      break;
+    }
+    // Reset flags
+    increment_program_counter = true;
 
     SDL_WaitEvent(&event);
 
     SDL_RenderSetScale(renderer, 8, 8);
 
-    printf("%x", memory[current_address]);
-    first_opcode_byte = memory[current_address];
-    second_opcode_byte = memory[current_address+1];
+    first_opcode_byte = memory[program_counter];
+    second_opcode_byte = memory[program_counter + 1];
 
     current_opcode = (first_opcode_byte * 0x100) + second_opcode_byte;
 
@@ -96,17 +101,23 @@ int main(int argc, char **argv) {
       if (current_opcode == 0x00e0) {
         memset(display, 0, sizeof(display[0][0]) * 64 * 32);
       }
+      break;
+    case 0x1:
+      program_counter = second_opcode_nibble * 0x100 + second_opcode_byte;
+      increment_program_counter = false;
+      break;
     case 0x6:
       registers[second_opcode_nibble] = second_opcode_byte;
-
+      break;
     case 0xf:
       // Useful for debugging purposes, not an actual instruction
       if (current_opcode == 0xffff) {
-        print_debug_info();
-        quit=true;
+        quit = true;
         break;
       }
     }
+
+    print_debug_info();
 
     for (int i = 0; i < 64; i++) {
       for (int j = 0; j < 32; j++) {
@@ -136,7 +147,9 @@ int main(int argc, char **argv) {
       break;
     }
 
-    program_counter = program_counter + 0x2;
+    if (increment_program_counter) {
+      program_counter = program_counter + 0x2;
+    }
   }
 
   fclose(fp);

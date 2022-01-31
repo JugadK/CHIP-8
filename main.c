@@ -103,12 +103,11 @@ int main(int argc, char **argv) {
       // Useful for debugging purposes, not an actual instruction
       if (current_opcode == 0xffff) {
         print_debug_info();
+        quit=true;
         break;
       }
     }
 
-    print_debug_info();
-  break;
     for (int i = 0; i < 64; i++) {
       for (int j = 0; j < 32; j++) {
 

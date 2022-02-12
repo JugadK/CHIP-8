@@ -86,6 +86,8 @@ int main(int argc, char **argv) {
 
     // Decode opcode
 
+    // nibble = 4 bits/half byte/one hex value
+
     first_opcode_nibble = current_opcode / 0x1000;
     second_opcode_nibble = (current_opcode / 0x100) % 0x10;
     third_opcode_nibble = (current_opcode / 0x10) % 0x10;
@@ -106,9 +108,42 @@ int main(int argc, char **argv) {
       program_counter = second_opcode_nibble * 0x100 + second_opcode_byte;
       increment_program_counter = false;
       break;
+    case 0x2:
+      stack_pointer++;
+      break;
+    case 0x3:
+      if (registers[second_opcode_nibble] == second_opcode_byte) {
+        program_counter = program_counter + 2;
+      }
+      break;
+    case 0x4:
+      if (registers[second_opcode_nibble] != second_opcode_byte) {
+        program_counter = program_counter + 2;
+      }
+      break;
+    case 0x5:
+      if (registers[second_opcode_nibble] == registers[third_opcode_nibble]) {
+        program_counter = program_counter + 2;
+      }
+      break;
     case 0x6:
       registers[second_opcode_nibble] = second_opcode_byte;
       break;
+    case 0x7:
+      registers[second_opcode_nibble] =
+          registers[second_opcode_nibble] + second_opcode_byte;
+      break;
+    case 0x8:
+
+      switch (fourth_opcode_nibble) {
+
+      case 0x0:
+        registers[third_opcode_nibble] = registers[second_opcode_nibble];
+        break;
+      case 0x1:
+        break;
+      }
+
     case 0xf:
       // Useful for debugging purposes, not an actual instruction
       if (current_opcode == 0xffff) {

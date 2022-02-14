@@ -141,6 +141,20 @@ int main(int argc, char **argv) {
         registers[third_opcode_nibble] = registers[second_opcode_nibble];
         break;
       case 0x1:
+        registers[second_opcode_nibble] =
+            registers[second_opcode_nibble] | registers[third_opcode_nibble];
+        break;
+      case 0x2:
+        registers[second_opcode_nibble] =
+            registers[second_opcode_nibble] & registers[third_opcode_nibble];
+        break;
+      case 0x3:
+        registers[second_opcode_nibble] =
+            registers[second_opcode_nibble] ^ registers[third_opcode_nibble];
+        break;
+      case 0x4:
+        registers[second_opcode_nibble] = registers[second_opcode_nibble] + registers[third_opcode_nibble];
+        //TODO check overflow
         break;
       }
 

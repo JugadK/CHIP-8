@@ -153,8 +153,12 @@ int main(int argc, char **argv) {
             registers[second_opcode_nibble] ^ registers[third_opcode_nibble];
         break;
       case 0x4:
-        registers[second_opcode_nibble] = registers[second_opcode_nibble] + registers[third_opcode_nibble];
-        //TODO check overflow
+        registers[second_opcode_nibble] =
+            registers[second_opcode_nibble] + registers[third_opcode_nibble];
+        if (registers[second_opcode_nibble] > 255) {
+          registers[0xF] = 1;
+        }
+        // TODO check overflow
         break;
       }
 

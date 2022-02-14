@@ -162,6 +162,8 @@ int main(int argc, char **argv) {
       case 0x5:
         if (registers[second_opcode_nibble] > registers[third_opcode_nibble]) {
           registers[0xF] = 1;
+        } else {
+          registers[0xF] = 0;
         }
         registers[second_opcode_nibble] =
             registers[second_opcode_nibble] - registers[third_opcode_nibble];
@@ -169,24 +171,32 @@ int main(int argc, char **argv) {
       case 0x6:
         if (registers[second_opcode_nibble] % 10 == 1) {
           registers[0xF] = 1;
+        } else {
+          registers[0xF] = 0;
         }
+
         registers[second_opcode_nibble] = registers[second_opcode_nibble] / 2;
         break;
       case 0x7:
         if (registers[third_opcode_nibble] > registers[second_opcode_nibble]) {
           registers[0xF] = 1;
+        } else {
+          registers[0xF] = 0;
         }
+
         registers[second_opcode_nibble] =
             registers[third_opcode_nibble] - registers[second_opcode_nibble];
         break;
       case 0xE:
         if (registers[second_opcode_nibble] % 10 == 1) {
           registers[0xF] = 1;
+        } else {
+          registers[0xF] = 0;
         }
+
         registers[second_opcode_nibble] = registers[second_opcode_nibble] * 2;
         break;
       }
-
     case 0xf:
       // Useful for debugging purposes, not an actual instruction
       if (current_opcode == 0xffff) {

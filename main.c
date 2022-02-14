@@ -166,6 +166,19 @@ int main(int argc, char **argv) {
         registers[second_opcode_nibble] =
             registers[second_opcode_nibble] - registers[third_opcode_nibble];
         break;
+      case 0x6:
+        if (registers[second_opcode_nibble] % 10 == 1) {
+          registers[0xF] == 1;
+        }
+        registers[second_opcode_nibble] = registers[second_opcode_nibble] / 2;
+        break;
+      case 0x7:
+        if (registers[third_opcode_nibble] > registers[second_opcode_nibble]) {
+          registers[0xF] = 1;
+        }
+        registers[second_opcode_nibble] =
+            registers[third_opcode_nibble] - registers[second_opcode_nibble];
+        break;
       }
 
     case 0xf:

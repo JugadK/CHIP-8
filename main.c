@@ -3,6 +3,7 @@
 #include <SDL2/SDL_stdinc.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 // Use unsigned chars to stop hex overflow when reading binary numbers
 unsigned char memory[4096] = {0};
@@ -15,6 +16,10 @@ bool delay_not_zero;
 unsigned int program_counter = 0x200;
 unsigned int stack[16];
 int stack_pointer;
+unsigned int registerI;
+
+// Stores value of the starting pixel in the draw 
+int starting_pixel;
 
 // Some instruction set the program counter to a specific addr, overriding the
 // normal increment
@@ -22,7 +27,7 @@ bool increment_program_counter = true;
 
 // Every Opcode is a two byte value, a hex value is represented by 4 binary
 // numbers or half a byte So that means that an opcode contains 4 hex numbers,
-// these can then be decoded to figure out what opcode is being called
+// these can then be decoded to figure out what instructions is being called
 
 // Ex. 6xkk, the 6 is the first nibble and shows that this opcode will take
 // value kk and place it in register x
@@ -38,6 +43,16 @@ unsigned char first_opcode_nibble;
 unsigned char second_opcode_nibble;
 unsigned char third_opcode_nibble;
 unsigned char fourth_opcode_nibble;
+
+// Sprite Building Blocks
+// Each Sprite in CHIP-8 is 5x8 and each line is represented by a certain hex
+// value which is then turned into some combination of asteriks and spaces
+
+// 0xF0 ****
+// 0xE0 ***
+// 0x90 *  *
+// 0x10    *
+// 0x8x *
 
 int main(int argc, char **argv) {
 
@@ -169,12 +184,11 @@ int main(int argc, char **argv) {
             registers[second_opcode_nibble] - registers[third_opcode_nibble];
         break;
       case 0x6:
-        if (registers[second_opcode_nibble] % 10 == 1) {
+        if (registers[second_opcode_nibble] % 0xF == 1) {
           registers[0xF] = 1;
         } else {
           registers[0xF] = 0;
         }
-
         registers[second_opcode_nibble] = registers[second_opcode_nibble] / 2;
         break;
       case 0x7:
@@ -183,20 +197,37 @@ int main(int argc, char **argv) {
         } else {
           registers[0xF] = 0;
         }
-
         registers[second_opcode_nibble] =
             registers[third_opcode_nibble] - registers[second_opcode_nibble];
         break;
       case 0xE:
-        if (registers[second_opcode_nibble] % 10 == 1) {
+        if (registers[second_opcode_nibble] % 0xF == 1) {
           registers[0xF] = 1;
         } else {
           registers[0xF] = 0;
         }
-
         registers[second_opcode_nibble] = registers[second_opcode_nibble] * 2;
         break;
       }
+
+    case 0x9:
+      if (registers[second_opcode_nibble] != registers[third_opcode_nibble]) {
+        program_counter = program_counter + 2;
+      }
+      break;
+    case 0xA:
+      registerI = current_opcode % 0xF000;
+      break;
+    case 0xB:
+      program_counter = program_counter + (current_opcode % 0xFFFF);
+      break;
+    case 0xC:
+      registers[third_opcode_nibble] =
+          rand() % (255 + 1) & registers[second_opcode_byte];
+      break;
+    case 0xD:
+      starting_pixel = display[second_opcode_nibble][third_opcode_nibble];
+      break;
     case 0xf:
       // Useful for debugging purposes, not an actual instruction
       if (current_opcode == 0xffff) {

@@ -18,7 +18,7 @@ unsigned int stack[16];
 int stack_pointer;
 unsigned int registerI;
 
-// Stores value of the starting pixel in the draw 
+// Stores value of the starting pixel in the draw
 int starting_pixel;
 
 // Some instruction set the program counter to a specific addr, overriding the
@@ -43,16 +43,6 @@ unsigned char first_opcode_nibble;
 unsigned char second_opcode_nibble;
 unsigned char third_opcode_nibble;
 unsigned char fourth_opcode_nibble;
-
-// Sprite Building Blocks
-// Each Sprite in CHIP-8 is 5x8 and each line is represented by a certain hex
-// value which is then turned into some combination of asteriks and spaces
-
-// 0xF0 ****
-// 0xE0 ***
-// 0x90 *  *
-// 0x10    *
-// 0x8x *
 
 int main(int argc, char **argv) {
 
@@ -227,6 +217,57 @@ int main(int argc, char **argv) {
       break;
     case 0xD:
       starting_pixel = display[second_opcode_nibble][third_opcode_nibble];
+
+      for (int i = registerI; i < registerI + fourth_opcode_nibble; i++) {
+
+        // Sprite Building Blocks
+        // Each Sprite in CHIP-8 is 5x8 and each line is represented by a
+        // certain hex value which is then turned into some combination of
+        // asteriks and spaces
+
+        // 0xF0 ****
+        // 0xE0 ***
+        // 0x90 *  *
+        // 0x10    *
+        // 0x80 *
+
+        switch (memory[i]) {
+        case 0xF0:
+
+          display[second_opcode_nibble][third_opcode_nibble] =
+              display[second_opcode_nibble][third_opcode_nibble] ^ 1;
+          display[second_opcode_nibble][third_opcode_nibble + 1] =
+              display[second_opcode_nibble][third_opcode_nibble + 1] ^ 1;
+          display[second_opcode_nibble][third_opcode_nibble + 2] =
+              display[second_opcode_nibble][third_opcode_nibble + 2] ^ 1;
+          display[second_opcode_nibble][third_opcode_nibble + 3] =
+              display[second_opcode_nibble][third_opcode_nibble + 3] ^ 1;
+          ;
+          break;
+        case 0xE0:
+          display[second_opcode_nibble][third_opcode_nibble] =
+              display[second_opcode_nibble][third_opcode_nibble] ^ 1;
+          display[second_opcode_nibble][third_opcode_nibble + 1] =
+              display[second_opcode_nibble][third_opcode_nibble] ^ 1;
+          display[second_opcode_nibble][third_opcode_nibble + 2] =
+              display[second_opcode_nibble][third_opcode_nibble] ^ 1;
+          break;
+        case 0x90:
+          display[second_opcode_nibble][third_opcode_nibble] =
+              display[second_opcode_nibble][third_opcode_nibble] ^ 1;
+          display[second_opcode_nibble][third_opcode_nibble] =
+              display[second_opcode_nibble][third_opcode_nibble + 3] ^ 1;
+          break;
+        case 0x10:
+          display[second_opcode_nibble][third_opcode_nibble] =
+              display[second_opcode_nibble][third_opcode_nibble + 3] ^ 1;
+          break;
+        case 0x80:
+          display[second_opcode_nibble][third_opcode_nibble] =
+              display[second_opcode_nibble][third_opcode_nibble] ^ 1;
+          break;
+        }
+      }
       break;
     case 0xf:
       // Useful for debugging purposes, not an actual instruction

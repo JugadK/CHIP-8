@@ -1,5 +1,6 @@
 #include "main.h"
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_keycode.h>
 #include <SDL2/SDL_stdinc.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -44,7 +45,17 @@ unsigned char second_opcode_nibble;
 unsigned char third_opcode_nibble;
 unsigned char fourth_opcode_nibble;
 
+// Keyboard
+
+// The CHIP-8 keyboard has 16 key with hexdecimal values
+
+// By using SDL_GETKEYSTATE we can get an array of all currently pressed keys
+
+// We can then map the original keyboard to osme new keyboard
+
 int main(int argc, char **argv) {
+
+  const Uint8 *state = SDL_GetKeyboardState(NULL);
 
   stack_pointer = &stack[0];
 
@@ -216,14 +227,13 @@ int main(int argc, char **argv) {
           rand() % (255 + 1) & registers[second_opcode_byte];
       break;
     case 0xD:
-      starting_pixel = display[second_opcode_nibble][third_opcode_nibble];
 
       for (int i = registerI; i < registerI + fourth_opcode_nibble; i++) {
 
         // Sprite Building Blocks
         // Each Sprite in CHIP-8 is 5x8 and each line is represented by a
         // certain hex value which is then turned into some combination of
-        // asteriks and spaces
+        // on and off pixels
 
         // 0xF0 ****
         // 0xE0 ***
@@ -268,9 +278,121 @@ int main(int argc, char **argv) {
           break;
         }
       }
+
+      break;
+
+    case 0xE:
+
+      switch (second_opcode_byte) {
+      case 0x9E:
+
+        // Chip 8 Keyboard
+
+        // 1 2 3 C
+        // 4 5 6 D
+        // 7 8 9 E
+        // A 0 B F
+
+        // Map to Modern Keyboard
+
+        // 7 8 9 0
+        // U I O P
+        // J K L ;
+        // M , . /
+
+        state = SDL_GetKeyboardState(NULL);
+        switch (second_opcode_nibble) {
+
+        case 0x1:
+          if (state[SDLK_7]) {
+            program_counter = program_counter + 2;
+          }
+
+          break;
+        case 0x2:
+          if (state[SDLK_8]) {
+            program_counter = program_counter + 2;
+          }
+          break;
+        case 0x3:
+          if (state[SDLK_9]) {
+            program_counter = program_counter + 2;
+          }
+          break;
+        case 0xC:
+          if (state[SDLK_0]) {
+            program_counter = program_counter + 2;
+          }
+          break;
+        case 0x4:
+          if (state[SDLK_u]) {
+            program_counter = program_counter + 2;
+          }
+          break;
+        case 0x5:
+          if (state[SDLK_i]) {
+            program_counter = program_counter + 2;
+          }
+          break;
+        case 0x6:
+          if (state[SDLK_o]) {
+            program_counter = program_counter + 2;
+          }
+          break;
+        case 0xD:
+          if (state[SDLK_p]) {
+            program_counter = program_counter + 2;
+          }
+          break;
+        case 0x7:
+          if (state[SDLK_j]) {
+            program_counter = program_counter + 2;
+          }
+          break;
+        case 0x8:
+          if (state[SDLK_k]) {
+            program_counter = program_counter + 2;
+          }
+          break;
+        case 0x9:
+          if (state[SDLK_l]) {
+            program_counter = program_counter + 2;
+          }
+          break;
+        case 0xE:
+          if (state[SDLK_SEMICOLON]) {
+            program_counter = program_counter + 2;
+          }
+          break;
+        case 0xA:
+          if (state[SDLK_m]) {
+            program_counter = program_counter + 2;
+          }
+          break;
+        case 0x0:
+          if (state[SDLK_COMMA]) {
+            program_counter = program_counter + 2;
+          }
+          break;
+        case 0xB:
+          if (state[SDLK_PERIOD]) {
+            program_counter = program_counter + 2;
+          }
+          break;
+        case 0xF:
+          if (state[SDLK_BACKSLASH]) {
+            program_counter = program_counter + 2;
+          }
+          break;
+        }
+        break;
+      }
       break;
     case 0xf:
-      // Useful for debugging purposes, not an actual instruction
+      // Useful for debugging purposes, not an actual instructio
+      switch (second_opcode_byte) {
+      case 
+      }
       if (current_opcode == 0xffff) {
         quit = true;
         break;

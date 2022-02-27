@@ -286,20 +286,6 @@ int main(int argc, char **argv) {
       switch (second_opcode_byte) {
       case 0x9E:
 
-        // Chip 8 Keyboard
-
-        // 1 2 3 C
-        // 4 5 6 D
-        // 7 8 9 E
-        // A 0 B F
-
-        // Map to Modern Keyboard
-
-        // 7 8 9 0
-        // U I O P
-        // J K L ;
-        // M , . /
-
         state = SDL_GetKeyboardState(NULL);
         switch (second_opcode_nibble) {
 
@@ -390,54 +376,57 @@ int main(int argc, char **argv) {
       break;
     case 0xf:
       // Useful for debugging purposes, not an actual instructio
+
       switch (second_opcode_byte) {
-      case 
+      case 0x07:
+        registers[second_opcode_nibble] = delay_register;
+
+        if (current_opcode == 0xffff) {
+          quit = true;
+          break;
+        }
       }
-      if (current_opcode == 0xffff) {
+
+      print_debug_info();
+
+      for (int i = 0; i < 64; i++) {
+        for (int j = 0; j < 32; j++) {
+
+          if (j % 2 == 0) {
+
+            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+
+            SDL_RenderDrawPoint(renderer, i, j);
+
+          } else {
+
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+
+            SDL_RenderDrawPoint(renderer, i, j);
+          }
+        }
+      }
+
+      SDL_RenderPresent(renderer);
+
+      // Checks if close button is pressed and exits the program
+      switch (event.type) {
+      case SDL_QUIT:
+        print_debug_info();
         quit = true;
         break;
       }
-    }
 
-    print_debug_info();
-
-    for (int i = 0; i < 64; i++) {
-      for (int j = 0; j < 32; j++) {
-
-        if (j % 2 == 0) {
-
-          SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-
-          SDL_RenderDrawPoint(renderer, i, j);
-
-        } else {
-
-          SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-
-          SDL_RenderDrawPoint(renderer, i, j);
-        }
+      if (increment_program_counter) {
+        program_counter = program_counter + 0x2;
       }
     }
 
-    SDL_RenderPresent(renderer);
+    fclose(fp);
+    //  SDL_Quit();
 
-    // Checks if close button is pressed and exits the program
-    switch (event.type) {
-    case SDL_QUIT:
-      print_debug_info();
-      quit = true;
-      break;
-    }
-
-    if (increment_program_counter) {
-      program_counter = program_counter + 0x2;
-    }
+    return 0;
   }
-
-  fclose(fp);
-  //  SDL_Quit();
-
-  return 0;
 }
 
 void print_debug_info() {

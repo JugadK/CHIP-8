@@ -5,10 +5,24 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void fillKeyPad(int keyPadValues[]) {
+
+
+// Keyboard
+
+// The CHIP-8 keyboard has 16 key with hexdecimal values
+
+// By using SDL_GETKEYSTATE we can get an array of all currently pressed keys
+
+// We can then map the original keyboard to osme new keyboard
+
+void GetKeyPadState(int keyPadValues[]) {
   if (sizeof(keyPadValues) < 16) {
 
   } else {
+
+    // 0 out array
+
+    memset(keyPadValues, 0, sizeof(keyPadValues))
 
     const Uint8 *state = SDL_GetKeyboardState(NULL);
 

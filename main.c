@@ -202,7 +202,7 @@ int main(int argc, char **argv) {
   memory[0x4E] = 0xF0;
   memory[0x4F] = 0x80;
   memory[0x50] = 0x80;
-  
+
   // Rom is loaded into memory starting from 0x200, or 512
   // The original CHIP-8 had its intrpretor in the first 512 bytes
   // So to emulate it we leave it empty and start at 0x200
@@ -449,6 +449,58 @@ int main(int argc, char **argv) {
 
       case 0x1E:
         registerI = registerI + registers[second_opcode_nibble];
+
+      case 0x29:
+        switch(second_opcode_nibble) {
+          case 0x0:
+          registerI = 0x0;
+          break;
+          case 0x1:
+          registerI = 0x5;
+          break;
+          case 0x2:
+          registerI = 0xA;
+          break;
+          case 0x3:
+          registerI = 0xF;
+          break;
+          case 0x4:
+          registerI = 0x14;
+          break;
+          case 0x5:
+          registerI = 0x19;
+          break;
+          case 0x6:
+          registerI = 0x1E;
+          break;
+          case 0x7:
+          registerI = 0x24;
+          break;
+          case 0x8:
+          registerI = 0x29;
+          break;
+          case 0x9:
+          registerI = 0x2E
+          break;
+          case 0xA:
+          registerI = 0x33;
+          break;
+          case 0xB:
+          registerI = 0x38;
+          break;
+          case 0xC:
+          registerI = 0x3D;
+          break;
+          case 0xD:
+          registerI = 0x42;
+          break;
+          case 0xE:
+          registerI = 0x47;
+          break;
+          case 0xF:
+          registerI = 0x4C;
+          break;
+        }
 
 
 

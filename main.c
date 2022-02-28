@@ -1,4 +1,5 @@
 #include "main.h"
+#include "chip_keypad.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_keycode.h>
 #include <SDL2/SDL_stdinc.h>
@@ -18,6 +19,8 @@ unsigned int program_counter = 0x200;
 unsigned int stack[16];
 int stack_pointer;
 unsigned int registerI;
+
+int[] keyPadValues;
 
 // Stores value of the starting pixel in the draw
 int starting_pixel;
@@ -45,14 +48,6 @@ unsigned char second_opcode_nibble;
 unsigned char third_opcode_nibble;
 unsigned char fourth_opcode_nibble;
 
-// Keyboard
-
-// The CHIP-8 keyboard has 16 key with hexdecimal values
-
-// By using SDL_GETKEYSTATE we can get an array of all currently pressed keys
-
-// We can then map the original keyboard to osme new keyboard
-
 int main(int argc, char **argv) {
 
   const Uint8 *state = SDL_GetKeyboardState(NULL);
@@ -77,6 +72,137 @@ int main(int argc, char **argv) {
     exit(EXIT_FAILURE);
   }
 
+  // Load hex sprites into memory, these are dedicated sprites any CHIP-8 program can use
+
+  // 0 sprite 
+
+  memory[0x0] = 0xF0;
+  memory[0x1] = 0x90;
+  memory[0x2] = 0x90;
+  memory[0x3] = 0x90;
+  memory[0x4] = 0xF0;
+
+  // 1 Sprite
+
+  memory[0x5] = 0x20;
+  memory[0x6] = 0x60;
+  memory[0x7] = 0x20;
+  memory[0x8] = 0x20;
+  memory[0x9] = 0x70;
+  
+  // 2 Sprite 
+
+  memory[0xA] = 0xF0;
+  memory[0xB] = 0x10;
+  memory[0xC] = 0xF0;
+  memory[0xD] = 0x80;
+  memory[0xE] = 0xF0;
+
+  // 3 Sprite
+
+  memory[0xF]  = 0xF0;
+  memory[0x10] = 0x10;
+  memory[0x11] = 0xF0;
+  memory[0x12] = 0x10;
+  memory[0x13] = 0xF0;
+
+  // 4 Sprite
+
+  memory[0x14] = 0x90;
+  memory[0x15] = 0x90;
+  memory[0x16] = 0xF0;
+  memory[0x17] = 0x10;
+  memory[0x18] = 0x10;
+
+  // 5 Sprite
+
+  memory[0x19] = 0xF0;
+  memory[0x1A] = 0x80;
+  memory[0x1B] = 0xF0;
+  memory[0x1C] = 0x10;
+  memory[0x1D] = 0xF0;
+
+  // 6 Sprite
+
+  memory[0x1E] = 0xF0;
+  memory[0x20] = 0x80;
+  memory[0x21] = 0xF0;
+  memory[0x22] = 0x90;
+  memory[0x23] = 0xF0;
+  
+  // 7 Sprite 
+
+  memory[0x24] = 0xF0;
+  memory[0x25] = 0x10;
+  memory[0x26] = 0x20;
+  memory[0x27] = 0x40;
+  memory[0x28] = 0x40;
+
+  // 8 Sprite
+
+  memory[0x29] = 0xF0;
+  memory[0x2A] = 0x90;
+  memory[0x2B] = 0xF0;
+  memory[0x2C] = 0x90;
+  memory[0x2D] = 0xF0;
+
+  // 9 Sprite
+
+  memory[0x2E] = 0xF0;
+  memory[0x2F] = 0x90;
+  memory[0x30] = 0xF0;
+  memory[0x31] = 0x10;
+  memory[0x32] = 0xF0;
+
+  // A Sprite 
+
+  memory[0x33] = 0xF0;
+  memory[0x34] = 0x90;
+  memory[0x35] = 0xF0;
+  memory[0x36] = 0x90;
+  memory[0x37] = 0x90;
+
+  // B Sprite 
+
+  memory[0x38] = 0xE0;
+  memory[0x39] = 0x90;
+  memory[0x3A] = 0xE0;
+  memory[0x3B] = 0x90;
+  memory[0x3C] = 0xE0;
+
+  // C Sprite 
+
+
+  memory[0x3D] = 0xF0;
+  memory[0x3E] = 0x80;
+  memory[0x3F] = 0x80;
+  memory[0x40] = 0x80;
+  memory[0x41] = 0xF0;
+
+  // D Sprite 
+
+  memory[0x42] = 0xE0;
+  memory[0x43] = 0x90;
+  memory[0x44] = 0x90;
+  memory[0x45] = 0x90;
+  memory[0x46] = 0xE0;
+
+  // E Sprite 
+
+  memory[0x47] = 0xF0;
+  memory[0x48] = 0x80;
+  memory[0x49] = 0xF0;
+  memory[0x4A] = 0x80;
+  memory[0x4B] = 0xF0;
+
+  // F Sprite 
+
+  memory[0x4C] = 0xF0;
+  memory[0x4D] = 0x80;
+  memory[0x4E] = 0xF0;
+  memory[0x4F] = 0x80;
+  memory[0x50] = 0x80;
+  
   // Rom is loaded into memory starting from 0x200, or 512
   // The original CHIP-8 had its intrpretor in the first 512 bytes
   // So to emulate it we leave it empty and start at 0x200
@@ -286,90 +412,24 @@ int main(int argc, char **argv) {
       switch (second_opcode_byte) {
       case 0x9E:
 
-        state = SDL_GetKeyboardState(NULL);
-        switch (second_opcode_nibble) {
+      GetKeyPadState(keyPadValues);
 
-        case 0x1:
-          if (state[SDLK_7]) {
-            program_counter = program_counter + 2;
-          }
+      if(keyPadValues[second_opcode_nibble] == 1) {
 
-          break;
-        case 0x2:
-          if (state[SDLK_8]) {
-            program_counter = program_counter + 2;
-          }
-          break;
-        case 0x3:
-          if (state[SDLK_9]) {
-            program_counter = program_counter + 2;
-          }
-          break;
-        case 0xC:
-          if (state[SDLK_0]) {
-            program_counter = program_counter + 2;
-          }
-          break;
-        case 0x4:
-          if (state[SDLK_u]) {
-            program_counter = program_counter + 2;
-          }
-          break;
-        case 0x5:
-          if (state[SDLK_i]) {
-            program_counter = program_counter + 2;
-          }
-          break;
-        case 0x6:
-          if (state[SDLK_o]) {
-            program_counter = program_counter + 2;
-          }
-          break;
-        case 0xD:
-          if (state[SDLK_p]) {
-            program_counter = program_counter + 2;
-          }
-          break;
-        case 0x7:
-          if (state[SDLK_j]) {
-            program_counter = program_counter + 2;
-          }
-          break;
-        case 0x8:
-          if (state[SDLK_k]) {
-            program_counter = program_counter + 2;
-          }
-          break;
-        case 0x9:
-          if (state[SDLK_l]) {
-            program_counter = program_counter + 2;
-          }
-          break;
-        case 0xE:
-          if (state[SDLK_SEMICOLON]) {
-            program_counter = program_counter + 2;
-          }
-          break;
-        case 0xA:
-          if (state[SDLK_m]) {
-            program_counter = program_counter + 2;
-          }
-          break;
-        case 0x0:
-          if (state[SDLK_COMMA]) {
-            program_counter = program_counter + 2;
-          }
-          break;
-        case 0xB:
-          if (state[SDLK_PERIOD]) {
-            program_counter = program_counter + 2;
-          }
-          break;
-        case 0xF:
-          if (state[SDLK_BACKSLASH]) {
-            program_counter = program_counter + 2;
-          }
-          break;
+        program_counter = program_counter + 2;
+      }
+      break;
+
+      case 0xA1:
+
+     GetKeyPadState(keyPadValues);
+
+      if(keyPadValues[second_opcode_nibble] == 0) {
+
+        program_counter = program_counter + 2;
+      }
+      
+
         }
         break;
       }
@@ -380,11 +440,21 @@ int main(int argc, char **argv) {
       switch (second_opcode_byte) {
       case 0x07:
         registers[second_opcode_nibble] = delay_register;
+        break;
+      case 0x15:
+        delay_register = registers[second_opcode_nibble];
+        break;
+      case 0x18:
+        time_register = registers[second_opcode_nibble];
 
-        if (current_opcode == 0xffff) {
+      case 0x1E:
+        registerI = registerI + registers[second_opcode_nibble];
+
+
+
+      case 0xFF:
           quit = true;
           break;
-        }
       }
 
       print_debug_info();

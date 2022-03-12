@@ -3,6 +3,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_keycode.h>
 #include <SDL2/SDL_stdinc.h>
+#include <SDL2/SDL_timer.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,10 +18,8 @@ unsigned char delay_register;
 bool delay_not_zero;
 unsigned int program_counter = 0x200;
 unsigned int stack[16];
-int stack_pointer;
+unsigned int *stack_pointer;
 unsigned int registerI;
-
-int[] keyPadValues;
 
 // Stores value of the starting pixel in the draw
 int starting_pixel;
@@ -50,6 +49,8 @@ unsigned char fourth_opcode_nibble;
 
 int main(int argc, char **argv) {
 
+  int keyPadValues[16];
+
   const Uint8 *state = SDL_GetKeyboardState(NULL);
 
   stack_pointer = &stack[0];
@@ -65,16 +66,17 @@ int main(int argc, char **argv) {
 
   FILE *fp;
 
-  fp = fopen("hex_test.bin", "rb"); // read mode
+  fp = fopen("test_opcode.ch8", "rb"); // read mode
 
   if (fp == NULL) {
     perror("Error while opening the file.\n");
     exit(EXIT_FAILURE);
   }
 
-  // Load hex sprites into memory, these are dedicated sprites any CHIP-8 program can use
+  // Load hex sprites into memory, these are dedicated sprites any CHIP-8
+  // program can use
 
-  // 0 sprite 
+  // 0 sprite
 
   memory[0x0] = 0xF0;
   memory[0x1] = 0x90;
@@ -89,8 +91,8 @@ int main(int argc, char **argv) {
   memory[0x7] = 0x20;
   memory[0x8] = 0x20;
   memory[0x9] = 0x70;
-  
-  // 2 Sprite 
+
+  // 2 Sprite
 
   memory[0xA] = 0xF0;
   memory[0xB] = 0x10;
@@ -100,7 +102,7 @@ int main(int argc, char **argv) {
 
   // 3 Sprite
 
-  memory[0xF]  = 0xF0;
+  memory[0xF] = 0xF0;
   memory[0x10] = 0x10;
   memory[0x11] = 0xF0;
   memory[0x12] = 0x10;
@@ -129,8 +131,8 @@ int main(int argc, char **argv) {
   memory[0x21] = 0xF0;
   memory[0x22] = 0x90;
   memory[0x23] = 0xF0;
-  
-  // 7 Sprite 
+
+  // 7 Sprite
 
   memory[0x24] = 0xF0;
   memory[0x25] = 0x10;
@@ -154,7 +156,7 @@ int main(int argc, char **argv) {
   memory[0x31] = 0x10;
   memory[0x32] = 0xF0;
 
-  // A Sprite 
+  // A Sprite
 
   memory[0x33] = 0xF0;
   memory[0x34] = 0x90;
@@ -162,7 +164,7 @@ int main(int argc, char **argv) {
   memory[0x36] = 0x90;
   memory[0x37] = 0x90;
 
-  // B Sprite 
+  // B Sprite
 
   memory[0x38] = 0xE0;
   memory[0x39] = 0x90;
@@ -170,8 +172,7 @@ int main(int argc, char **argv) {
   memory[0x3B] = 0x90;
   memory[0x3C] = 0xE0;
 
-  // C Sprite 
-
+  // C Sprite
 
   memory[0x3D] = 0xF0;
   memory[0x3E] = 0x80;
@@ -179,7 +180,7 @@ int main(int argc, char **argv) {
   memory[0x40] = 0x80;
   memory[0x41] = 0xF0;
 
-  // D Sprite 
+  // D Sprite
 
   memory[0x42] = 0xE0;
   memory[0x43] = 0x90;
@@ -187,7 +188,7 @@ int main(int argc, char **argv) {
   memory[0x45] = 0x90;
   memory[0x46] = 0xE0;
 
-  // E Sprite 
+  // E Sprite
 
   memory[0x47] = 0xF0;
   memory[0x48] = 0x80;
@@ -195,7 +196,7 @@ int main(int argc, char **argv) {
   memory[0x4A] = 0x80;
   memory[0x4B] = 0xF0;
 
-  // F Sprite 
+  // F Sprite
 
   memory[0x4C] = 0xF0;
   memory[0x4D] = 0x80;
@@ -208,18 +209,20 @@ int main(int argc, char **argv) {
   // So to emulate it we leave it empty and start at 0x200
 
   fread(&memory[0x200], sizeof(memory), 1, fp);
+  
+  SDL_WaitEvent(&event);
+
+  SDL_RenderSetScale(renderer, 8, 8);
 
   while (!quit) {
 
-    if (program_counter > 0x208) {
-      break;
-    }
+    print_debug_info();
+
+    // if (program_counter > 0x208) {
+    //  break;
+    //}
     // Reset flags
     increment_program_counter = true;
-
-    SDL_WaitEvent(&event);
-
-    SDL_RenderSetScale(renderer, 8, 8);
 
     first_opcode_byte = memory[program_counter];
     second_opcode_byte = memory[program_counter + 1];
@@ -240,7 +243,15 @@ int main(int argc, char **argv) {
     // the correct instruction for most of the instructions, after that we then
     // branch into if statements if neccesary
 
+    //    printf("%x\n", current_opcode);
+    //
+    //    printf("%x\n", first_opcode_byte);
+    //    printf("%x\n", second_opcode_byte);
+
+    printf("%u \n", program_counter);
+
     switch (first_opcode_nibble) {
+
     case 0x0:
       if (current_opcode == 0x00e0) {
         memset(display, 0, sizeof(display[0][0]) * 64 * 32);
@@ -249,6 +260,8 @@ int main(int argc, char **argv) {
     case 0x1:
       program_counter = second_opcode_nibble * 0x100 + second_opcode_byte;
       increment_program_counter = false;
+      printf("%u gsdfgsdfg", program_counter);
+
       break;
     case 0x2:
       stack_pointer++;
@@ -337,13 +350,15 @@ int main(int argc, char **argv) {
         break;
       }
 
+      break;
+
     case 0x9:
       if (registers[second_opcode_nibble] != registers[third_opcode_nibble]) {
         program_counter = program_counter + 2;
       }
       break;
     case 0xA:
-      registerI = current_opcode % 0xF000;
+      registerI = current_opcode % 0x1000;
       break;
     case 0xB:
       program_counter = program_counter + (current_opcode % 0xFFFF);
@@ -355,7 +370,7 @@ int main(int argc, char **argv) {
     case 0xD:
 
       for (int i = registerI; i < registerI + fourth_opcode_nibble; i++) {
-
+        printf("\n%u registerI\n", i);
         // Sprite Building Blocks
         // Each Sprite in CHIP-8 is 5x8 and each line is represented by a
         // certain hex value which is then turned into some combination of
@@ -378,8 +393,8 @@ int main(int argc, char **argv) {
               display[second_opcode_nibble][third_opcode_nibble + 2] ^ 1;
           display[second_opcode_nibble][third_opcode_nibble + 3] =
               display[second_opcode_nibble][third_opcode_nibble + 3] ^ 1;
-          ;
           break;
+
         case 0xE0:
           display[second_opcode_nibble][third_opcode_nibble] =
               display[second_opcode_nibble][third_opcode_nibble] ^ 1;
@@ -412,32 +427,33 @@ int main(int argc, char **argv) {
       switch (second_opcode_byte) {
       case 0x9E:
 
-      GetKeyPadState(keyPadValues);
+        GetKeyPadState(*keyPadValues);
 
-      if(keyPadValues[second_opcode_nibble] == 1) {
+        if (keyPadValues[second_opcode_nibble] == 1) {
 
-        program_counter = program_counter + 2;
-      }
-      break;
+          program_counter = program_counter + 2;
+        }
+        break;
 
       case 0xA1:
 
-     GetKeyPadState(keyPadValues);
+        GetKeyPadState(*keyPadValues);
 
-      if(keyPadValues[second_opcode_nibble] == 0) {
+        if (keyPadValues[second_opcode_nibble] == 0) {
 
-        program_counter = program_counter + 2;
-      }
-      
-
+          program_counter = program_counter + 2;
         }
-        break;
       }
       break;
+
     case 0xf:
       // Useful for debugging purposes, not an actual instructio
 
       switch (second_opcode_byte) {
+
+      case 0x0A:
+        registers[second_opcode_byte] = 0x1;
+
       case 0x07:
         registers[second_opcode_nibble] = delay_register;
         break;
@@ -445,110 +461,112 @@ int main(int argc, char **argv) {
         delay_register = registers[second_opcode_nibble];
         break;
       case 0x18:
-        time_register = registers[second_opcode_nibble];
+        sound_register = registers[second_opcode_nibble];
 
       case 0x1E:
         registerI = registerI + registers[second_opcode_nibble];
 
       case 0x29:
-        switch(second_opcode_nibble) {
-          case 0x0:
+        switch (second_opcode_nibble) {
+        case 0x0:
           registerI = 0x0;
           break;
-          case 0x1:
+        case 0x1:
           registerI = 0x5;
           break;
-          case 0x2:
+        case 0x2:
           registerI = 0xA;
           break;
-          case 0x3:
+        case 0x3:
           registerI = 0xF;
           break;
-          case 0x4:
+        case 0x4:
           registerI = 0x14;
           break;
-          case 0x5:
+        case 0x5:
           registerI = 0x19;
           break;
-          case 0x6:
+        case 0x6:
           registerI = 0x1E;
           break;
-          case 0x7:
+        case 0x7:
           registerI = 0x24;
           break;
-          case 0x8:
+        case 0x8:
           registerI = 0x29;
           break;
-          case 0x9:
-          registerI = 0x2E
+        case 0x9:
+          registerI = 0x2E;
           break;
-          case 0xA:
+        case 0xA:
           registerI = 0x33;
           break;
-          case 0xB:
+        case 0xB:
           registerI = 0x38;
           break;
-          case 0xC:
+        case 0xC:
           registerI = 0x3D;
           break;
-          case 0xD:
+        case 0xD:
           registerI = 0x42;
           break;
-          case 0xE:
+        case 0xE:
           registerI = 0x47;
           break;
-          case 0xF:
+        case 0xF:
           registerI = 0x4C;
           break;
         }
-
-
-
-      case 0xFF:
-          quit = true;
-          break;
-      }
-
-      print_debug_info();
-
-      for (int i = 0; i < 64; i++) {
-        for (int j = 0; j < 32; j++) {
-
-          if (j % 2 == 0) {
-
-            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-
-            SDL_RenderDrawPoint(renderer, i, j);
-
-          } else {
-
-            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-
-            SDL_RenderDrawPoint(renderer, i, j);
-          }
-        }
-      }
-
-      SDL_RenderPresent(renderer);
-
-      // Checks if close button is pressed and exits the program
-      switch (event.type) {
-      case SDL_QUIT:
-        print_debug_info();
-        quit = true;
-        break;
-      }
-
-      if (increment_program_counter) {
-        program_counter = program_counter + 0x2;
       }
     }
 
-    fclose(fp);
-    //  SDL_Quit();
+    for (int i = 0; i < 64; i++) {
+      for (int j = 0; j < 32; j++) {
 
-    return 0;
+      
+
+        if (display[i][j] == 0) {
+
+            
+
+          SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+
+          SDL_RenderDrawPoint(renderer, i, j);
+
+        } else {
+
+          printf("%u", display[i][j]);
+
+          SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+
+          SDL_RenderDrawPoint(renderer, i, j);
+        }
+      }
+    }
+
+    // SDL_RenderPresent(renderer);
+
+    // Checks if close button is pressed and exits the program
+    switch (event.type) {
+    case SDL_QUIT:
+      print_debug_info();
+      quit = true;
+      break;
+    }
+
+    if (increment_program_counter) {
+      program_counter = program_counter + 0x2;
+    }
+
+    if (program_counter > 900) {
+      break;
+    }
   }
+
+  fclose(fp);
+  SDL_Quit();
+
+  return 0;
 }
 
 void print_debug_info() {

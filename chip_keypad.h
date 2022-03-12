@@ -1,1 +1,1 @@
-void GetKeyPadState(int[] keyPadValues);
+void GetKeyPadState(int keyPadValues);

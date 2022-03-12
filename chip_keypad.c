@@ -16,13 +16,15 @@
 // We can then map the original keyboard to osme new keyboard
 
 void GetKeyPadState(int keyPadValues[]) {
-  if (sizeof(keyPadValues) < 16) {
+  if (sizeof(*keyPadValues) < 16) {
 
   } else {
 
+    printf("ENTER KEYPAD");
+
     // 0 out array
 
-    memset(keyPadValues, 0, sizeof(keyPadValues))
+    memset(keyPadValues, 0, sizeof(*keyPadValues));
 
     const Uint8 *state = SDL_GetKeyboardState(NULL);
 
@@ -89,5 +91,4 @@ void GetKeyPadState(int keyPadValues[]) {
       keyPadValues[0xF] = 1;
     }
   }
-}
 }

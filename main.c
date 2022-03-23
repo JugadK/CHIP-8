@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+
 // Use unsigned chars to stop hex overflow when reading binary numbers
 unsigned char memory[4096] = {0};
 int display[64][32];
@@ -50,6 +51,9 @@ unsigned char second_opcode_nibble;
 unsigned char third_opcode_nibble;
 unsigned char fourth_opcode_nibble;
 
+x_position_draw;
+y_position_draw;
+
 int main(int argc, char **argv) {
 
   int keyPadValues[16];
@@ -69,7 +73,12 @@ int main(int argc, char **argv) {
 
   FILE *fp;
 
-  fp = fopen("hex_test.bin", "rb"); // read mode
+  // fp = fopen("hex_test.bin", "rb"); // read mode
+
+  fp = fopen("test_opcode.ch8", "rb"); // read mode
+
+  fp = fopen("Particle Demo [zeroZshadow, 2008].ch8",
+             "rb"); // read mode
 
   if (fp == NULL) {
     perror("Error while opening the file.\n");
@@ -412,28 +421,25 @@ int main(int argc, char **argv) {
         // 0x10     *
         // 0x00
 
-        printf("\n%x", memory[i]);
-        printf("\n%x", memory[i] & 00010000);
-        printf("\n%x", memory[i] & 00100000);
-        printf("\n%x", memory[i] & 00100000);
-        printf("\n%x", memory[i] & 00010000);
+        x_position_draw = registers[second_opcode_nibble];
+        y_position_draw = registers[third_opcode_nibble];
 
-        display[third_opcode_nibble][second_opcode_nibble + draw_counter] =
-            display[third_opcode_nibble][second_opcode_nibble + draw_counter] ^
+        printf("\n%x", x_position_draw);
+        printf("\n%x", y_position_draw);
+
+        display[x_position_draw][y_position_draw + draw_counter] =
+            display[x_position_draw][y_position_draw + draw_counter] ^
             (((memory[i] & 0b10000000) == 0)
                  ? 0
                  : 1); // Bit mask to check if the bit with 1 is 0
-        display[third_opcode_nibble + 1][second_opcode_nibble + draw_counter] =
-            display[third_opcode_nibble + 1]
-                   [second_opcode_nibble + draw_counter] ^
+        display[x_position_draw + 1][y_position_draw + draw_counter] =
+            display[x_position_draw + 1][y_position_draw + draw_counter] ^
             (((memory[i] & 0b01000000) == 0) ? 0 : 1);
-        display[third_opcode_nibble + +2][second_opcode_nibble + draw_counter] =
-            display[third_opcode_nibble + 2]
-                   [second_opcode_nibble + draw_counter] ^
+        display[x_position_draw + +2][y_position_draw + draw_counter] =
+            display[x_position_draw + 2][y_position_draw + draw_counter] ^
             (((memory[i] & 0b00100000) == 0) ? 0 : 1);
-        display[third_opcode_nibble + 3][second_opcode_nibble + draw_counter] =
-            display[third_opcode_nibble + 3]
-                   [second_opcode_nibble + draw_counter] ^
+        display[x_position_draw + 3][y_position_draw + draw_counter] =
+            display[x_position_draw + 3][y_position_draw + draw_counter] ^
             (((memory[i] & 0b00010000) == 0) ? 0 : 1);
 
         draw_counter++;
@@ -581,7 +587,20 @@ int main(int argc, char **argv) {
       sound_register--;
     }
 
-    sleep(1);
+    SDL_Delay(160);
+  }
+
+  quit = false;
+
+  while (!quit) {
+
+    switch (event.type) {
+    case SDL_QUIT:
+      print_debug_info();
+      quit = true;
+      break;
+      break;
+    }
   }
 
   fclose(fp);
@@ -606,12 +625,12 @@ void print_debug_info() {
     printf("register%x: %x\n", current_register, registers[current_register]);
   }
 
-  for (int col = 0; col < 32; col++) {
-    for (int row = 0; row < 64; row++) {
-
-      printf("%i", display[row][col]);
-    }
-
-    printf("\n");
-  }
+  // for (int col = 0; col < 32; col++) {
+  //   for (int row = 0; row < 64; row++) {
+  //
+  //     printf("%i", display[row][col]);
+  //   }
+  //
+  //   printf("\n");
+  // }
 }

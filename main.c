@@ -10,7 +10,7 @@
 
 // Use unsigned chars to stop hex overflow when reading binary numbers
 unsigned char memory[4096] = {0};
-int display[64][32] = {0};
+int display[64][32];
 unsigned char registers[16];
 unsigned char sound_register;
 bool play_sound;
@@ -20,6 +20,7 @@ unsigned int program_counter = 0x200;
 unsigned int stack[16];
 unsigned int *stack_pointer;
 unsigned int registerI;
+unsigned int draw_counter;
 
 // Stores value of the starting pixel in the draw
 int starting_pixel;
@@ -27,6 +28,8 @@ int starting_pixel;
 // Some instruction set the program counter to a specific addr, overriding the
 // normal increment
 bool increment_program_counter = true;
+
+int height_increment = 0;
 
 // Every Opcode is a two byte value, a hex value is represented by 4 binary
 // numbers or half a byte So that means that an opcode contains 4 hex numbers,
@@ -66,7 +69,7 @@ int main(int argc, char **argv) {
 
   FILE *fp;
 
-  fp = fopen("test_opcode.ch8", "rb"); // read mode
+  fp = fopen("hex_test.bin", "rb"); // read mode
 
   if (fp == NULL) {
     perror("Error while opening the file.\n");
@@ -209,7 +212,7 @@ int main(int argc, char **argv) {
   // So to emulate it we leave it empty and start at 0x200
 
   fread(&memory[0x200], sizeof(memory), 1, fp);
-  
+
   SDL_WaitEvent(&event);
 
   SDL_RenderSetScale(renderer, 8, 8);
@@ -249,6 +252,10 @@ int main(int argc, char **argv) {
     //    printf("%x\n", second_opcode_byte);
 
     printf("%u \n", program_counter);
+
+    if (current_opcode == 0xFFFF) {
+      break;
+    }
 
     switch (first_opcode_nibble) {
 
@@ -369,8 +376,13 @@ int main(int argc, char **argv) {
       break;
     case 0xD:
 
+      draw_counter = 0;
+
       for (int i = registerI; i < registerI + fourth_opcode_nibble; i++) {
-        printf("\n%u registerI\n", i);
+
+        printf("\ni %u register I %x  nibble %x memory %x %x\n", i, registerI,
+               fourth_opcode_nibble, memory[i], draw_counter);
+
         // Sprite Building Blocks
         // Each Sprite in CHIP-8 is 5x8 and each line is represented by a
         // certain hex value which is then turned into some combination of
@@ -381,43 +393,121 @@ int main(int argc, char **argv) {
         // 0x90 *  *
         // 0x10    *
         // 0x80 *
+        // 0x20   *
+        // 0x40  *
+        // 0x70  ***
 
         switch (memory[i]) {
         case 0xF0:
 
-          display[second_opcode_nibble][third_opcode_nibble] =
-              display[second_opcode_nibble][third_opcode_nibble] ^ 1;
-          display[second_opcode_nibble][third_opcode_nibble + 1] =
-              display[second_opcode_nibble][third_opcode_nibble + 1] ^ 1;
-          display[second_opcode_nibble][third_opcode_nibble + 2] =
-              display[second_opcode_nibble][third_opcode_nibble + 2] ^ 1;
-          display[second_opcode_nibble][third_opcode_nibble + 3] =
-              display[second_opcode_nibble][third_opcode_nibble + 3] ^ 1;
+          display[third_opcode_nibble][second_opcode_nibble + draw_counter] =
+              display[third_opcode_nibble]
+                     [second_opcode_nibble + draw_counter] ^
+              1;
+          display[third_opcode_nibble + 1]
+                 [second_opcode_nibble + draw_counter] =
+                     display[third_opcode_nibble + 1]
+                            [second_opcode_nibble + draw_counter] ^
+                     1;
+          display[third_opcode_nibble + +2]
+                 [second_opcode_nibble + draw_counter] =
+                     display[third_opcode_nibble + 2]
+                            [second_opcode_nibble + draw_counter] ^
+                     1;
+          display[third_opcode_nibble + 3]
+                 [second_opcode_nibble + draw_counter] =
+                     display[third_opcode_nibble + 3]
+                            [second_opcode_nibble + draw_counter] ^
+                     1;
           break;
 
         case 0xE0:
-          display[second_opcode_nibble][third_opcode_nibble] =
-              display[second_opcode_nibble][third_opcode_nibble] ^ 1;
-          display[second_opcode_nibble][third_opcode_nibble + 1] =
-              display[second_opcode_nibble][third_opcode_nibble] ^ 1;
-          display[second_opcode_nibble][third_opcode_nibble + 2] =
-              display[second_opcode_nibble][third_opcode_nibble] ^ 1;
+          display[third_opcode_nibble][second_opcode_nibble + draw_counter] =
+              display[third_opcode_nibble]
+                     [second_opcode_nibble + draw_counter] ^
+              1;
+          display[third_opcode_nibble + 1]
+                 [second_opcode_nibble + draw_counter] =
+                     display[third_opcode_nibble + 1]
+                            [second_opcode_nibble + draw_counter] ^
+                     1;
+          display[third_opcode_nibble + 2]
+                 [second_opcode_nibble + draw_counter] =
+                     display[third_opcode_nibble + 2]
+                            [second_opcode_nibble + draw_counter] ^
+                     1;
           break;
         case 0x90:
-          display[second_opcode_nibble][third_opcode_nibble] =
-              display[second_opcode_nibble][third_opcode_nibble] ^ 1;
-          display[second_opcode_nibble][third_opcode_nibble] =
-              display[second_opcode_nibble][third_opcode_nibble + 3] ^ 1;
+          display[third_opcode_nibble][second_opcode_nibble + draw_counter] =
+              display[third_opcode_nibble]
+                     [second_opcode_nibble + draw_counter] ^
+              1;
+          display[third_opcode_nibble + 3]
+                 [second_opcode_nibble + draw_counter] =
+                     display[third_opcode_nibble + 3]
+                            [second_opcode_nibble + draw_counter] ^
+                     1;
           break;
         case 0x10:
-          display[second_opcode_nibble][third_opcode_nibble] =
-              display[second_opcode_nibble][third_opcode_nibble + 3] ^ 1;
+          display[third_opcode_nibble + 3]
+                 [second_opcode_nibble + draw_counter] =
+                     display[third_opcode_nibble + 3]
+                            [second_opcode_nibble + draw_counter] ^
+                     1;
           break;
+        case 0x20:
+          display[third_opcode_nibble + 2]
+                 [second_opcode_nibble + draw_counter] =
+                     display[third_opcode_nibble + 2]
+                            [second_opcode_nibble + draw_counter] ^
+                     1;
+          break;
+        case 0x40:
+          display[third_opcode_nibble + 1]
+                 [second_opcode_nibble + draw_counter] =
+                     display[third_opcode_nibble + 1]
+                            [second_opcode_nibble + draw_counter] ^
+                     1;
+          break;
+
         case 0x80:
-          display[second_opcode_nibble][third_opcode_nibble] =
-              display[second_opcode_nibble][third_opcode_nibble] ^ 1;
+          display[third_opcode_nibble][second_opcode_nibble + draw_counter] =
+              display[third_opcode_nibble]
+                     [second_opcode_nibble + draw_counter] ^
+              1;
+          break;
+        case 0x70:
+          display[third_opcode_nibble + 1]
+                 [second_opcode_nibble + draw_counter] =
+                     display[third_opcode_nibble + 1]
+                            [second_opcode_nibble + draw_counter] ^
+                     1;
+          display[third_opcode_nibble + 2]
+                 [second_opcode_nibble + draw_counter] =
+                     display[third_opcode_nibble + 2]
+                            [second_opcode_nibble + draw_counter] ^
+                     1;
+          display[third_opcode_nibble + 3]
+                 [second_opcode_nibble + draw_counter] =
+                     display[third_opcode_nibble + 3]
+                            [second_opcode_nibble + draw_counter] ^
+                     1;
+          break;
+        case 0x60:
+          display[third_opcode_nibble + 1]
+                 [second_opcode_nibble + draw_counter] =
+                     display[third_opcode_nibble + 1]
+                            [second_opcode_nibble + draw_counter] ^
+                     1;
+          display[third_opcode_nibble + 2]
+                 [second_opcode_nibble + draw_counter] =
+                     display[third_opcode_nibble + 2]
+                            [second_opcode_nibble + draw_counter] ^
+                     1;
           break;
         }
+
+        draw_counter++;
       }
 
       break;
@@ -447,7 +537,6 @@ int main(int argc, char **argv) {
       break;
 
     case 0xf:
-      // Useful for debugging purposes, not an actual instructio
 
       switch (second_opcode_byte) {
 
@@ -523,11 +612,7 @@ int main(int argc, char **argv) {
     for (int i = 0; i < 64; i++) {
       for (int j = 0; j < 32; j++) {
 
-      
-
         if (display[i][j] == 0) {
-
-            
 
           SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 
@@ -550,21 +635,19 @@ int main(int argc, char **argv) {
     switch (event.type) {
     case SDL_QUIT:
       print_debug_info();
-      quit = true;
-      break;
+    // quit = true;
+    // break;
     }
 
     if (increment_program_counter) {
       program_counter = program_counter + 0x2;
     }
 
-    if (program_counter > 900) {
-      break;
-    }
+    sleep(1);
   }
 
   fclose(fp);
-  SDL_Quit();
+  //SDL_Quit();
 
   return 0;
 }
@@ -585,8 +668,8 @@ void print_debug_info() {
     printf("register%x: %x\n", current_register, registers[current_register]);
   }
 
-  for (int row = 0; row < 32; row++) {
-    for (int col = 0; col < 64; col++) {
+  for (int col = 0; col < 32; col++) {
+    for (int row = 0; row < 64; row++) {
 
       printf("%i", display[row][col]);
     }

@@ -207,17 +207,23 @@ int main(int argc, char **argv) {
   memory[0x4F] = 0x80;
   memory[0x50] = 0x80;
 
+  SDL_WaitEvent(&event);
+
+  SDL_RenderSetLogicalSize(renderer, 64, 32);
+
+  SDL_RenderSetScale(renderer, 8, 8);
+
   // Rom is loaded into memory starting from 0x200, or 512
   // The original CHIP-8 had its intrpretor in the first 512 bytes
   // So to emulate it we leave it empty and start at 0x200
 
   fread(&memory[0x200], sizeof(memory), 1, fp);
 
-  SDL_WaitEvent(&event);
-
-  SDL_RenderSetScale(renderer, 8, 8);
-
   while (!quit) {
+
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    // Show all the has been done behind the scenes
+    SDL_RenderPresent(renderer);
 
     print_debug_info();
 
@@ -380,8 +386,9 @@ int main(int argc, char **argv) {
 
       for (int i = registerI; i < registerI + fourth_opcode_nibble; i++) {
 
-        printf("\ni %u register I %x  nibble %x memory %x %x\n", i, registerI,
-               fourth_opcode_nibble, memory[i], draw_counter);
+        // printf("\ni %u register I %x  nibble %x memory %x %x\n", i,
+        // registerI,
+        //        fourth_opcode_nibble, memory[i], draw_counter);
 
         // Sprite Building Blocks
         // Each Sprite in CHIP-8 is 5x8 and each line is represented by a
@@ -390,122 +397,44 @@ int main(int argc, char **argv) {
 
         // 0xF0 ****
         // 0xE0 ***
+        // 0xD0 ** *
+        // 0xC0 **
+        // 0xB0 * **
+        // 0xA0 * *
         // 0x90 *  *
-        // 0x10    *
         // 0x80 *
-        // 0x20   *
-        // 0x40  *
         // 0x70  ***
+        // 0x60  **
+        // 0x50  * *
+        // 0x40  *
+        // 0x30   **
+        // 0x20   *
+        // 0x10     *
+        // 0x00
 
-        switch (memory[i]) {
-        case 0xF0:
+        printf("\n%x", memory[i]);
+        printf("\n%x", memory[i] & 00010000);
+        printf("\n%x", memory[i] & 00100000);
+        printf("\n%x", memory[i] & 00100000);
+        printf("\n%x", memory[i] & 00010000);
 
-          display[third_opcode_nibble][second_opcode_nibble + draw_counter] =
-              display[third_opcode_nibble]
-                     [second_opcode_nibble + draw_counter] ^
-              1;
-          display[third_opcode_nibble + 1]
-                 [second_opcode_nibble + draw_counter] =
-                     display[third_opcode_nibble + 1]
-                            [second_opcode_nibble + draw_counter] ^
-                     1;
-          display[third_opcode_nibble + +2]
-                 [second_opcode_nibble + draw_counter] =
-                     display[third_opcode_nibble + 2]
-                            [second_opcode_nibble + draw_counter] ^
-                     1;
-          display[third_opcode_nibble + 3]
-                 [second_opcode_nibble + draw_counter] =
-                     display[third_opcode_nibble + 3]
-                            [second_opcode_nibble + draw_counter] ^
-                     1;
-          break;
-
-        case 0xE0:
-          display[third_opcode_nibble][second_opcode_nibble + draw_counter] =
-              display[third_opcode_nibble]
-                     [second_opcode_nibble + draw_counter] ^
-              1;
-          display[third_opcode_nibble + 1]
-                 [second_opcode_nibble + draw_counter] =
-                     display[third_opcode_nibble + 1]
-                            [second_opcode_nibble + draw_counter] ^
-                     1;
-          display[third_opcode_nibble + 2]
-                 [second_opcode_nibble + draw_counter] =
-                     display[third_opcode_nibble + 2]
-                            [second_opcode_nibble + draw_counter] ^
-                     1;
-          break;
-        case 0x90:
-          display[third_opcode_nibble][second_opcode_nibble + draw_counter] =
-              display[third_opcode_nibble]
-                     [second_opcode_nibble + draw_counter] ^
-              1;
-          display[third_opcode_nibble + 3]
-                 [second_opcode_nibble + draw_counter] =
-                     display[third_opcode_nibble + 3]
-                            [second_opcode_nibble + draw_counter] ^
-                     1;
-          break;
-        case 0x10:
-          display[third_opcode_nibble + 3]
-                 [second_opcode_nibble + draw_counter] =
-                     display[third_opcode_nibble + 3]
-                            [second_opcode_nibble + draw_counter] ^
-                     1;
-          break;
-        case 0x20:
-          display[third_opcode_nibble + 2]
-                 [second_opcode_nibble + draw_counter] =
-                     display[third_opcode_nibble + 2]
-                            [second_opcode_nibble + draw_counter] ^
-                     1;
-          break;
-        case 0x40:
-          display[third_opcode_nibble + 1]
-                 [second_opcode_nibble + draw_counter] =
-                     display[third_opcode_nibble + 1]
-                            [second_opcode_nibble + draw_counter] ^
-                     1;
-          break;
-
-        case 0x80:
-          display[third_opcode_nibble][second_opcode_nibble + draw_counter] =
-              display[third_opcode_nibble]
-                     [second_opcode_nibble + draw_counter] ^
-              1;
-          break;
-        case 0x70:
-          display[third_opcode_nibble + 1]
-                 [second_opcode_nibble + draw_counter] =
-                     display[third_opcode_nibble + 1]
-                            [second_opcode_nibble + draw_counter] ^
-                     1;
-          display[third_opcode_nibble + 2]
-                 [second_opcode_nibble + draw_counter] =
-                     display[third_opcode_nibble + 2]
-                            [second_opcode_nibble + draw_counter] ^
-                     1;
-          display[third_opcode_nibble + 3]
-                 [second_opcode_nibble + draw_counter] =
-                     display[third_opcode_nibble + 3]
-                            [second_opcode_nibble + draw_counter] ^
-                     1;
-          break;
-        case 0x60:
-          display[third_opcode_nibble + 1]
-                 [second_opcode_nibble + draw_counter] =
-                     display[third_opcode_nibble + 1]
-                            [second_opcode_nibble + draw_counter] ^
-                     1;
-          display[third_opcode_nibble + 2]
-                 [second_opcode_nibble + draw_counter] =
-                     display[third_opcode_nibble + 2]
-                            [second_opcode_nibble + draw_counter] ^
-                     1;
-          break;
-        }
+        display[third_opcode_nibble][second_opcode_nibble + draw_counter] =
+            display[third_opcode_nibble][second_opcode_nibble + draw_counter] ^
+            (((memory[i] & 0b10000000) == 0)
+                 ? 0
+                 : 1); // Bit mask to check if the bit with 1 is 0
+        display[third_opcode_nibble + 1][second_opcode_nibble + draw_counter] =
+            display[third_opcode_nibble + 1]
+                   [second_opcode_nibble + draw_counter] ^
+            (((memory[i] & 0b01000000) == 0) ? 0 : 1);
+        display[third_opcode_nibble + +2][second_opcode_nibble + draw_counter] =
+            display[third_opcode_nibble + 2]
+                   [second_opcode_nibble + draw_counter] ^
+            (((memory[i] & 0b00100000) == 0) ? 0 : 1);
+        display[third_opcode_nibble + 3][second_opcode_nibble + draw_counter] =
+            display[third_opcode_nibble + 3]
+                   [second_opcode_nibble + draw_counter] ^
+            (((memory[i] & 0b00010000) == 0) ? 0 : 1);
 
         draw_counter++;
       }
@@ -635,19 +564,28 @@ int main(int argc, char **argv) {
     switch (event.type) {
     case SDL_QUIT:
       print_debug_info();
-    // quit = true;
-    // break;
+      quit = true;
+      break;
     }
 
     if (increment_program_counter) {
       program_counter = program_counter + 0x2;
     }
 
+    if (delay_register > 0) {
+
+      delay_register--;
+    }
+
+    if (sound_register > 0) {
+      sound_register--;
+    }
+
     sleep(1);
   }
 
   fclose(fp);
-  //SDL_Quit();
+  SDL_Quit();
 
   return 0;
 }

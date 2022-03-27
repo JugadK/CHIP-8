@@ -1,13 +1,15 @@
 #include "main.h"
 #include "chip_keypad.h"
+#include "stack.h"
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_events.h>
 #include <SDL2/SDL_keycode.h>
 #include <SDL2/SDL_stdinc.h>
 #include <SDL2/SDL_timer.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <sys/types.h>
 
 // Use unsigned chars to stop hex overflow when reading binary numbers
 unsigned char memory[4096] = {0};
@@ -18,10 +20,10 @@ bool play_sound;
 unsigned char delay_register;
 bool delay_not_zero;
 unsigned int program_counter = 0x200;
-unsigned int stack[16];
-unsigned int *stack_pointer;
+struct stack chip8_stack;
 unsigned int registerI;
 unsigned int draw_counter;
+unsigned int render_counter;
 
 // Stores value of the starting pixel in the draw
 int starting_pixel;
@@ -51,21 +53,21 @@ unsigned char second_opcode_nibble;
 unsigned char third_opcode_nibble;
 unsigned char fourth_opcode_nibble;
 
-x_position_draw;
-y_position_draw;
+unsigned int x_position_draw;
+unsigned int y_position_draw;
 
 int main(int argc, char **argv) {
 
-  int keyPadValues[16];
+  int keyPadValues[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
   const Uint8 *state = SDL_GetKeyboardState(NULL);
 
-  stack_pointer = &stack[0];
+  chip8_stack = createStack(16);
 
   SDL_Renderer *renderer = NULL;
   SDL_Event event;
   SDL_Init(SDL_INIT_VIDEO);
-  SDL_Window *win = SDL_CreateWindow("Hello world", SDL_WINDOWPOS_CENTERED,
+  SDL_Window *win = SDL_CreateWindow("CHIP-8", SDL_WINDOWPOS_CENTERED,
                                      SDL_WINDOWPOS_CENTERED, 512, 256, 0);
 
   renderer = SDL_CreateRenderer(win, -1, 0);
@@ -73,12 +75,9 @@ int main(int argc, char **argv) {
 
   FILE *fp;
 
-  // fp = fopen("hex_test.bin", "rb"); // read mode
+  // Load ROM file
 
-  fp = fopen("test_opcode.ch8", "rb"); // read mode
-
-  fp = fopen("Particle Demo [zeroZshadow, 2008].ch8",
-             "rb"); // read mode
+  fp = fopen("flightrunner.ch8", "rb"); // read mode
 
   if (fp == NULL) {
     perror("Error while opening the file.\n");
@@ -216,11 +215,19 @@ int main(int argc, char **argv) {
   memory[0x4F] = 0x80;
   memory[0x50] = 0x80;
 
-  SDL_WaitEvent(&event);
+  // CHIP-8 Display was 64 x 32, this is really small in modern displays so I increase it all by 8 to make it
+  // look more readable
 
   SDL_RenderSetLogicalSize(renderer, 64, 32);
 
   SDL_RenderSetScale(renderer, 8, 8);
+
+  // Instead of drawing every opcode we can instead draw every 60th instruction
+  int draw_counter = 0;
+
+  render_counter = 0;
+
+  bool collision_flag = false;
 
   // Rom is loaded into memory starting from 0x200, or 512
   // The original CHIP-8 had its intrpretor in the first 512 bytes
@@ -230,16 +237,25 @@ int main(int argc, char **argv) {
 
   while (!quit) {
 
+    // Clock rate 500 HZ
+    SDL_Delay(2);
+
+    GetKeyPadState(keyPadValues);
+
+    while (SDL_PollEvent(&event)) {
+      switch (event.type) {
+      case SDL_QUIT:
+        print_debug_info();
+        quit = true;
+        break;
+      }
+    }
+
+
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     // Show all the has been done behind the scenes
     SDL_RenderPresent(renderer);
 
-    print_debug_info();
-
-    // if (program_counter > 0x208) {
-    //  break;
-    //}
-    // Reset flags
     increment_program_counter = true;
 
     first_opcode_byte = memory[program_counter];
@@ -257,36 +273,38 @@ int main(int argc, char **argv) {
     fourth_opcode_nibble = current_opcode % 0x10;
 
     // To make reduce the amount of if statements, I decided to use a switch
-    // code for the first nibble, since with that we can correclty figure out
-    // the correct instruction for most of the instructions, after that we then
-    // branch into if statements if neccesary
-
-    //    printf("%x\n", current_opcode);
-    //
-    //    printf("%x\n", first_opcode_byte);
-    //    printf("%x\n", second_opcode_byte);
-
-    printf("%u \n", program_counter);
-
-    if (current_opcode == 0xFFFF) {
-      break;
-    }
+    // code for the first nibble, since with that we can correctly figure out
+    // the correct instruction for most of the instructions, after that we
+    // then branch into core switch statements depending on waht the opcode id
 
     switch (first_opcode_nibble) {
 
     case 0x0:
-      if (current_opcode == 0x00e0) {
+
+      switch (second_opcode_byte) {
+
+      case 0xE0:
         memset(display, 0, sizeof(display[0][0]) * 64 * 32);
+        break;
+        
+      case 0xEE:
+        program_counter = pop(&chip8_stack);
+        break;
       }
       break;
     case 0x1:
       program_counter = second_opcode_nibble * 0x100 + second_opcode_byte;
       increment_program_counter = false;
-      printf("%u gsdfgsdfg", program_counter);
 
       break;
     case 0x2:
-      stack_pointer++;
+
+      push(&chip8_stack, program_counter);
+
+      program_counter = current_opcode % 0x1000;
+
+      increment_program_counter = false;
+
       break;
     case 0x3:
       if (registers[second_opcode_nibble] == second_opcode_byte) {
@@ -315,7 +333,7 @@ int main(int argc, char **argv) {
       switch (fourth_opcode_nibble) {
 
       case 0x0:
-        registers[third_opcode_nibble] = registers[second_opcode_nibble];
+        registers[second_opcode_nibble] = registers[third_opcode_nibble];
         break;
       case 0x1:
         registers[second_opcode_nibble] =
@@ -386,18 +404,17 @@ int main(int argc, char **argv) {
       program_counter = program_counter + (current_opcode % 0xFFFF);
       break;
     case 0xC:
-      registers[third_opcode_nibble] =
-          rand() % (255 + 1) & registers[second_opcode_byte];
+      registers[second_opcode_nibble] =
+          (rand() % (255 + 1)) & second_opcode_byte;
       break;
     case 0xD:
 
       draw_counter = 0;
+      // If any of the pixels are drawn over
+      collision_flag = false;
 
-      for (int i = registerI; i < registerI + fourth_opcode_nibble; i++) {
-
-        // printf("\ni %u register I %x  nibble %x memory %x %x\n", i,
-        // registerI,
-        //        fourth_opcode_nibble, memory[i], draw_counter);
+      for (unsigned int i = registerI; i < registerI + fourth_opcode_nibble;
+           i++) {
 
         // Sprite Building Blocks
         // Each Sprite in CHIP-8 is 5x8 and each line is represented by a
@@ -424,8 +441,16 @@ int main(int argc, char **argv) {
         x_position_draw = registers[second_opcode_nibble];
         y_position_draw = registers[third_opcode_nibble];
 
-        printf("\n%x", x_position_draw);
-        printf("\n%x", y_position_draw);
+        int previous_display[4] = {0, 0, 0, 0};
+
+        previous_display[0] =
+            display[x_position_draw][y_position_draw + draw_counter];
+        previous_display[1] =
+            display[x_position_draw + 1][y_position_draw + draw_counter];
+        previous_display[2] =
+            display[x_position_draw + 2][y_position_draw + draw_counter];
+        previous_display[3] =
+            display[x_position_draw + 3][y_position_draw + draw_counter];
 
         display[x_position_draw][y_position_draw + draw_counter] =
             display[x_position_draw][y_position_draw + draw_counter] ^
@@ -442,7 +467,25 @@ int main(int argc, char **argv) {
             display[x_position_draw + 3][y_position_draw + draw_counter] ^
             (((memory[i] & 0b00010000) == 0) ? 0 : 1);
 
+        if (collision_flag == false) {
+          for (int j = 0; j < 4; j++) {
+            if (previous_display[j] == 1 &&
+                display[x_position_draw + j][y_position_draw + draw_counter] ==
+                    0) {
+
+              collision_flag = true;
+              break;
+            }
+          }
+        }
+
         draw_counter++;
+      }
+
+      if (collision_flag) {
+        registers[0xF] = 1;
+      } else {
+        registers[0xF] = 0;
       }
 
       break;
@@ -452,31 +495,36 @@ int main(int argc, char **argv) {
       switch (second_opcode_byte) {
       case 0x9E:
 
-        GetKeyPadState(*keyPadValues);
-
-        if (keyPadValues[second_opcode_nibble] == 1) {
-
+        if (keyPadValues[registers[second_opcode_nibble]] == 1) {
           program_counter = program_counter + 2;
         }
         break;
 
       case 0xA1:
 
-        GetKeyPadState(*keyPadValues);
-
-        if (keyPadValues[second_opcode_nibble] == 0) {
-
+        if (keyPadValues[registers[second_opcode_nibble]] == 0) {
           program_counter = program_counter + 2;
         }
-      }
+      };
       break;
 
-    case 0xf:
+    case 0xF:
 
       switch (second_opcode_byte) {
 
       case 0x0A:
-        registers[second_opcode_byte] = 0x1;
+
+        while (true) {
+          int keyPressed = WaitForKeyPress();
+
+          if (keyPressed != 0xFF) {
+
+            registers[second_opcode_nibble] = keyPressed;
+
+            break;
+          }
+        }
+        break;
 
       case 0x07:
         registers[second_opcode_nibble] = delay_register;
@@ -486,9 +534,11 @@ int main(int argc, char **argv) {
         break;
       case 0x18:
         sound_register = registers[second_opcode_nibble];
+        break;
 
       case 0x1E:
         registerI = registerI + registers[second_opcode_nibble];
+        break;
 
       case 0x29:
         switch (second_opcode_nibble) {
@@ -541,68 +591,77 @@ int main(int argc, char **argv) {
           registerI = 0x4C;
           break;
         }
+        break;
+      case 0x33:
+        memory[registerI] = (registers[second_opcode_nibble] / 100) % 10;
+        memory[registerI + 1] = (registers[second_opcode_nibble] / 10) % 10;
+        memory[registerI + 2] = (registers[second_opcode_nibble] % 10);
+
+        break;
+      case 0x55:
+
+        for (int i = 0; i < second_opcode_nibble + 1; i++) {
+
+          memory[registerI + i] = registers[i];
+        }
+
+        break;
+
+      case 0x65:
+
+        for (int i = 0; i < second_opcode_nibble + 1; i++) {
+
+          registers[i] = memory[registerI + i];
+        }
+
+        break;
       }
     }
 
-    for (int i = 0; i < 64; i++) {
-      for (int j = 0; j < 32; j++) {
+    render_counter++;
 
-        if (display[i][j] == 0) {
+    // Every 8th clock cycle we render the display which gives us a 60hz refreah rate
 
-          SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    if (render_counter > 8) {
+      for (int i = 0; i < 64; i++) {
+        for (int j = 0; j < 32; j++) {
 
-          SDL_RenderDrawPoint(renderer, i, j);
+          if (display[i][j] == 0) {
 
-        } else {
+            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 
-          printf("%u", display[i][j]);
+            SDL_RenderDrawPoint(renderer, i, j);
 
-          SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+          } else {
 
-          SDL_RenderDrawPoint(renderer, i, j);
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+
+            SDL_RenderDrawPoint(renderer, i, j);
+          }
         }
       }
-    }
 
+      if (delay_register > 0) {
+
+        delay_register--;
+      }
+
+      if (sound_register > 0) {
+        sound_register--;
+      }
+
+      render_counter = 0;
+    }
     // SDL_RenderPresent(renderer);
 
     // Checks if close button is pressed and exits the program
-    switch (event.type) {
-    case SDL_QUIT:
-      print_debug_info();
-      quit = true;
-      break;
-    }
 
     if (increment_program_counter) {
       program_counter = program_counter + 0x2;
     }
-
-    if (delay_register > 0) {
-
-      delay_register--;
-    }
-
-    if (sound_register > 0) {
-      sound_register--;
-    }
-
-    SDL_Delay(160);
   }
 
-  quit = false;
-
-  while (!quit) {
-
-    switch (event.type) {
-    case SDL_QUIT:
-      print_debug_info();
-      quit = true;
-      break;
-      break;
-    }
-  }
-
+  free(chip8_stack.stack_pointer);
   fclose(fp);
   SDL_Quit();
 
@@ -611,7 +670,6 @@ int main(int argc, char **argv) {
 
 void print_debug_info() {
 
-  printf("\n");
   printf("current opcode %x\n", current_opcode);
   printf("opcode first byte %x\n", first_opcode_byte);
   printf("opcode second byte %x\n", second_opcode_byte);
@@ -619,18 +677,20 @@ void print_debug_info() {
   printf("opcode second nibble %x\n", second_opcode_nibble);
   printf("opcode third nibble %x\n", third_opcode_nibble);
   printf("opcode fourth nibble %x\n", fourth_opcode_nibble);
+  printf("\nregister I %x \n", registerI);
+  printf("stack pointer %x \n", *chip8_stack.stack_pointer);
 
   for (int current_register = 0; current_register < 16; current_register++) {
 
     printf("register%x: %x\n", current_register, registers[current_register]);
   }
 
-  // for (int col = 0; col < 32; col++) {
-  //   for (int row = 0; row < 64; row++) {
-  //
-  //     printf("%i", display[row][col]);
-  //   }
-  //
-  //   printf("\n");
-  // }
+  for (int col = 0; col < 32; col++) {
+    for (int row = 0; row < 64; row++) {
+
+      printf("%i", display[row][col]);
+    }
+
+    printf("\n");
+  }
 }

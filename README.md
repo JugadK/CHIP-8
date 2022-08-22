@@ -12,3 +12,6 @@ This Project is mainly mean't for me to learn C and understand emulators and com
 GCC and SDL2
 
 Build using MAKE file
+```
+make
+```
